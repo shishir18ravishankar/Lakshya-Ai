@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lakshya-Ai | Intelligent Goal Breakdown & Execution Engine</title>
+  <meta name="description" content="Lakshya-Ai: Transform ambitious aspirations into high-precision, achievable milestones powered by strategic intelligence.">
+  <meta name="keywords" content="Lakshya, AI, Goal Tracker, Productivity, Milestone Planner, Execution">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Glow Background Accents -->
+  <div class="glow-orb glow-top-left" aria-hidden="true"></div>
+  <div class="glow-orb glow-bottom-right" aria-hidden="true"></div>
+
+  <!-- App Container -->
+  <div class="app-layout">
+    <!-- Navigation Header -->
+    <header class="app-header" id="app-header">
+      <div class="brand-container">
+        <div class="brand-logo-icon">
+          <span class="target-symbol">◎</span>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">Lakshya<span>.AI</span></h1>
+          <p class="brand-tagline">लक्ष्य • Precision Goal Intelligence</p>
+        </div>
+      </div>
+
+      <nav class="header-actions">
+        <div class="status-badge" id="ai-engine-status">
+          <span class="status-dot"></span>
+          <span class="status-label">AI Engine Ready</span>
+        </div>
+        <button class="btn btn-secondary" id="export-btn" title="Export current goals to JSON">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Data
+        </button>
+        <button class="btn btn-primary" id="open-new-goal-modal-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          New Lakshya
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      <!-- Project Hero Banner Card -->
+      <section class="hero-banner-card" id="hero-banner-card">
+        <div class="hero-banner-img-wrap">
+          <img src="assets/banner.jpg" alt="Lakshya AI Neural Architecture" class="hero-banner-img" id="hero-banner-img">
+          <div class="hero-banner-overlay"></div>
+        </div>
+        <div class="hero-banner-content">
+          <span class="badge-accent">Intelligent Execution Platform</span>
+          <h2 class="hero-title">From Vague Ambition to Mathematical Execution</h2>
+          <p class="hero-description">
+            Feed any long-term aspiration into Lakshya-Ai. Our intelligent decomposition model splits it into sprint-ready milestones, timelines, and measurable verification benchmarks.
+          </p>
+        </div>
+      </section>
+
+      <!-- Metric Highlights -->
+      <section class="metrics-grid" id="metrics-grid">
+        <div class="metric-card" id="metric-active-goals">
+          <div class="metric-icon metric-purple">🎯</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-total-goals">3</span>
+            <span class="metric-label">Active Targets</span>
+          </div>
+        </div>
+
+        <div class="metric-card" id="metric-milestones-done">
+          <div class="metric-icon metric-cyan">⚡</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-completed-milestones">7 / 14</span>
+            <span class="metric-label">Milestones Cleared</span>
+          </div>
+        </div>
+
+        <div class="metric-card" id="metric-overall-progress">
+          <div class="metric-icon metric-green">📈</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-average-progress">50%</span>
+            <span class="metric-label">Execution Velocity</span>
+          </div>
+        </div>
+
+        <div class="metric-card" id="metric-streak">
+          <div class="metric-icon metric-amber">🔥</div>
+          <div class="metric-info">
+            <span class="metric-value" id="stat-day-streak">12 Days</span>
+            <span class="metric-label">Focus Momentum</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick AI Goal Generator Bar -->
+      <section class="quick-generator-section" id="quick-generator-section">
+        <div class="quick-generator-card">
+          <div class="card-header">
+            <h3>⚡ Quick AI Target Decomposer</h3>
+            <p>Type any target (e.g. <em>"Launch full-stack SaaS in 30 days"</em> or <em>"Master Rust systems programming"</em>)</p>
+          </div>
+          <form class="quick-gen-form" id="quick-gen-form">
+            <div class="input-with-select">
+              <input type="text" id="quick-goal-input" placeholder="State your ambitious target here..." required autocomplete="off">
+              <select id="quick-goal-category" class="category-select">
+                <option value="tech">Tech & Code</option>
+                <option value="learning">Learning & Skill</option>
+                <option value="career">Career & Growth</option>
+                <option value="health">Fitness & Mindset</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-gradient" id="quick-gen-btn">
+              <span>Deconstruct Target</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Target Filters & Control Bar -->
+      <section class="controls-bar" id="controls-bar">
+        <div class="category-filters" id="category-filters">
+          <button class="filter-chip active" data-category="all">All Targets</button>
+          <button class="filter-chip" data-category="tech">Tech & Code</button>
+          <button class="filter-chip" data-category="learning">Learning</button>
+          <button class="filter-chip" data-category="career">Career</button>
+          <button class="filter-chip" data-category="health">Health & Habits</button>
+        </div>
+
+        <div class="search-sort-group">
+          <div class="search-input-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="goal-search-input" placeholder="Search milestones & targets...">
+          </div>
+        </div>
+      </section>
+
+      <!-- Goals Container Grid -->
+      <section class="goals-list-section" id="goals-list-section">
+        <div class="goals-grid" id="goals-grid">
+          <!-- Dynamically populated by app.js -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer" id="app-footer">
+      <div class="footer-content">
+        <p>Lakshya-Ai • Developed for high-focus executors. Open source and Git-free ready.</p>
+        <div class="footer-links">
+          <a href="https://github.com/shishir18ravishankar/Lakshya-Ai" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+          <span>•</span>
+          <button class="link-btn" id="github-upload-guide-btn">How to Upload to GitHub without Git</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modal: Add / Decompose Goal -->
+  <div class="modal-backdrop" id="goal-modal" aria-hidden="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="modal-title">Create New Lakshya (Target)</h3>
+        <button class="btn-close" id="close-modal-btn" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="modal-goal-form">
+        <div class="form-group">
+          <label for="modal-goal-title">Target Objective</label>
+          <input type="text" id="modal-goal-title" placeholder="e.g. Build an AI-driven Voice Assistant" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modal-goal-category">Domain / Category</label>
+            <select id="modal-goal-category" class="form-select">
+              <option value="tech">Tech & Code</option>
+              <option value="learning">Learning & Skill</option>
+              <option value="career">Career & Growth</option>
+              <option value="health">Fitness & Mindset</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-goal-deadline">Target Horizon</label>
+            <input type="text" id="modal-goal-deadline" placeholder="e.g. 4 Weeks / Oct 2026">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-goal-notes">Strategic Context & Constraints</label>
+          <textarea id="modal-goal-notes" rows="3" placeholder="Add specific milestones, links, or architectural requirements..."></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-gradient" id="modal-submit-btn">
+            Generate Milestones with AI
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: GitHub Upload Guide (Git-Free) -->
+  <div class="modal-backdrop" id="guide-modal" aria-hidden="true">
+    <div class="modal-window guide-window">
+      <div class="modal-header">
+        <h3>Pushing to GitHub Without Git</h3>
+        <button class="btn-close" id="close-guide-btn">&times;</button>
+      </div>
+      <div class="guide-content">
+        <p>Since Git is not installed locally on this machine, you have 3 quick ways to sync this project to your repository:</p>
+        <div class="guide-step">
+          <span class="step-num">1</span>
+          <div>
+            <h4>Drag & Drop via GitHub Web</h4>
+            <p>Open <a href="https://github.com/shishir18ravishankar/Lakshya-Ai" target="_blank">shishir18ravishankar/Lakshya-Ai</a> in your browser. Click <strong>"uploading an existing file"</strong>, drag these project files into the browser, and click <strong>Commit changes</strong>.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">2</span>
+          <div>
+            <h4>In-Browser VS Code (github.dev)</h4>
+            <p>Press the <strong><code>.</code></strong> (dot) key on your GitHub repository page or visit <code>https://github.dev/shishir18ravishankar/Lakshya-Ai</code> to edit, commit, and push straight from your browser.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <span class="step-num">3</span>
+          <div>
+            <h4>GitHub REST API (Automated)</h4>
+            <p>We've included a ready-to-use PowerShell script (<code>sync-to-github.ps1</code>) in this workspace. With a personal GitHub token, you can push files directly via API!</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="guide-close-btn">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
