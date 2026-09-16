@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { ApiError, GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import { SYSTEM_PROMPT } from "./prompt";
 import {
   FeasibilityModelOutputSchema,
@@ -6,8 +6,8 @@ import {
   type FeasibilityModelOutput,
 } from "./types";
 
-const MODEL = "claude-sonnet-5";
-const MAX_TOKENS = 8192;
+const MODEL = "gemini-3.7-flash";
+const MAX_OUTPUT_TOKENS = 8192;
 
 export type CallFeasibilityModelResult =
   | { ok: true; data: FeasibilityModelOutput; modelUsed: string }
@@ -20,25 +20,22 @@ export type CallFeasibilityModelResult =
       };
     };
 
-// A 4xx from the API (bad request, auth, permission, not found, unprocessable)
-// will fail identically on retry, so it's treated as terminal. 429/5xx/network
-// failures are transient and get the single retry.
+// A 4xx from the API (bad request, auth, permission, not found, ...) will
+// fail identically on retry, so it's treated as terminal. 429 is rate
+// limiting rather than a malformed request, so it stays in the
+// transient/retryable bucket along with 5xx and network failures.
 function isNonRetryableClientError(error: unknown): boolean {
-  if (error instanceof Anthropic.APIConnectionError) return false;
-  if (error instanceof Anthropic.RateLimitError) return false;
-  if (error instanceof Anthropic.InternalServerError) return false;
-  return (
-    error instanceof Anthropic.APIError &&
-    typeof error.status === "number" &&
-    error.status >= 400 &&
-    error.status < 500
-  );
+  if (!(error instanceof ApiError) || typeof error.status !== "number") {
+    return false;
+  }
+  if (error.status === 429) return false;
+  return error.status >= 400 && error.status < 500;
 }
 
 export async function callFeasibilityModel(
   userMessage: string
 ): Promise<CallFeasibilityModelResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return {
       ok: false,
@@ -50,7 +47,7 @@ export async function callFeasibilityModel(
     };
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = new GoogleGenAI({ apiKey });
 
   let lastError: CallFeasibilityModelResult & { ok: false } = {
     ok: false,
@@ -64,19 +61,17 @@ export async function callFeasibilityModel(
   // At most one retry total, across both transient API failures and
   // validation failures — not one retry budget per failure type.
   for (let attempt = 0; attempt < 2; attempt++) {
-    let response: Anthropic.Message;
+    let response: GenerateContentResponse;
 
     try {
-      response = await client.messages.create({
+      response = await client.models.generateContent({
         model: MODEL,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-        output_config: {
-          format: {
-            type: "json_schema",
-            schema: feasibilityModelOutputJsonSchema,
-          },
+        contents: userMessage,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          responseMimeType: "application/json",
+          responseJsonSchema: feasibilityModelOutputJsonSchema,
         },
       });
     } catch (error) {
@@ -102,13 +97,7 @@ export async function callFeasibilityModel(
       continue;
     }
 
-    let text: string | undefined;
-    for (const block of response.content) {
-      if (block.type === "text") {
-        text = block.text;
-        break;
-      }
-    }
+    const text = response.text;
 
     if (text === undefined) {
       lastError = {
@@ -150,7 +139,7 @@ export async function callFeasibilityModel(
       continue;
     }
 
-    return { ok: true, data: parsed.data, modelUsed: response.model };
+    return { ok: true, data: parsed.data, modelUsed: MODEL };
   }
 
   return lastError;

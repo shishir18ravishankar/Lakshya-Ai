@@ -2,7 +2,7 @@
  * Runnable via: npx tsx lib/ai/test-harness.ts
  *
  * PART A is pure/offline and always runs. PART B is a live integration
- * check against the real Claude API and only runs if ANTHROPIC_API_KEY is
+ * check against the real Gemini API and only runs if GEMINI_API_KEY is
  * set in the environment.
  */
 
@@ -146,7 +146,7 @@ function runPartA(): void {
 }
 
 // ===========================================================================
-// PART B — live, only runs if ANTHROPIC_API_KEY is set
+// PART B — live, only runs if GEMINI_API_KEY is set
 // ===========================================================================
 
 async function runLiveScenario(label: string, location: string, sector: string | undefined): Promise<void> {
@@ -190,8 +190,8 @@ async function runLiveScenario(label: string, location: string, sector: string |
 async function runPartB(): Promise<void> {
   console.log("\n=== PART B: live API integration checks ===\n");
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log("ANTHROPIC_API_KEY is not set — skipping live checks.");
+  if (!process.env.GEMINI_API_KEY) {
+    console.log("GEMINI_API_KEY is not set — skipping live checks.");
     console.log(
       "NOTE: if the first-ever live call returns a 400 about schema complexity or " +
         "parameter limits, stop and report the exact error rather than simplifying the schema."
