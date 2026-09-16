@@ -37,6 +37,71 @@ const SegmentPrioritySchema = z.enum(["primary", "secondary"]);
 const SeveritySchema = z.enum(["low", "medium", "high"]);
 
 // ---------------------------------------------------------------------------
+// Analytical section schemas
+//
+// Each of these is the single source of truth for its section's shape.
+// FeasibilityResponseSchema (the full server response) and
+// FeasibilityModelOutputSchema (what we ask the model for) both reference
+// these same constants, so the two can never drift apart.
+// ---------------------------------------------------------------------------
+
+export const VerdictInputSchema = z.object({
+  market_score: TaggedSchema(z.number()), // 0-100
+  competition_score: TaggedSchema(z.number()), // 0-100
+  opportunity_score: TaggedSchema(z.number()), // 0-100
+  overall_score: TaggedSchema(z.number()), // 0-100
+  recommendation: TaggedSchema(RecommendationSchema),
+  rationale: TaggedSchema(z.string()),
+});
+
+export const LocalDemandSchema = z.object({
+  summary: TaggedSchema(z.string()),
+  indicators: z.array(TaggedSchema(z.string())),
+});
+
+export const CompetitorsSchema = z.object({
+  summary: TaggedSchema(z.string()),
+  intensity: TaggedSchema(IntensitySchema),
+  players: z.array(TaggedSchema(z.string())),
+});
+
+export const CustomerSegmentsSchema = z.array(
+  TaggedSchema(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      priority: SegmentPrioritySchema,
+    })
+  )
+);
+
+export const SuggestedPricingSchema = z.object({
+  summary: TaggedSchema(z.string()),
+  items: z.array(
+    TaggedSchema(
+      z.object({
+        product: z.string(),
+        price_min_inr: z.number(),
+        price_max_inr: z.number(),
+        basis: z.string(),
+      })
+    )
+  ),
+});
+
+export const OpportunityAreasSchema = z.array(TaggedSchema(z.string()));
+
+export const RisksSchema = z.array(
+  TaggedSchema(
+    z.object({
+      risk: z.string(),
+      severity: SeveritySchema,
+      mitigation: z.string(),
+    })
+  )
+);
+
+// ---------------------------------------------------------------------------
 // FeasibilityResponse
 // ---------------------------------------------------------------------------
 
@@ -62,61 +127,13 @@ export const FeasibilityResponseSchema = z.object({
     monthly_expenses_inr: TaggedSchema(z.number()).optional(), // scale mode only
   }),
 
-  verdict_input: z.object({
-    market_score: TaggedSchema(z.number()), // 0-100
-    competition_score: TaggedSchema(z.number()), // 0-100
-    opportunity_score: TaggedSchema(z.number()), // 0-100
-    overall_score: TaggedSchema(z.number()), // 0-100
-    recommendation: TaggedSchema(RecommendationSchema),
-    rationale: TaggedSchema(z.string()),
-  }),
-
-  local_demand: z.object({
-    summary: TaggedSchema(z.string()),
-    indicators: z.array(TaggedSchema(z.string())),
-  }),
-
-  competitors: z.object({
-    summary: TaggedSchema(z.string()),
-    intensity: TaggedSchema(IntensitySchema),
-    players: z.array(TaggedSchema(z.string())),
-  }),
-
-  customer_segments: z.array(
-    TaggedSchema(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-        priority: SegmentPrioritySchema,
-      })
-    )
-  ),
-
-  suggested_pricing: z.object({
-    summary: TaggedSchema(z.string()),
-    items: z.array(
-      TaggedSchema(
-        z.object({
-          product: z.string(),
-          price_min_inr: z.number(),
-          price_max_inr: z.number(),
-          basis: z.string(),
-        })
-      )
-    ),
-  }),
-
-  opportunity_areas: z.array(TaggedSchema(z.string())),
-
-  risks: z.array(
-    TaggedSchema(
-      z.object({
-        risk: z.string(),
-        severity: SeveritySchema,
-        mitigation: z.string(),
-      })
-    )
-  ),
+  verdict_input: VerdictInputSchema,
+  local_demand: LocalDemandSchema,
+  competitors: CompetitorsSchema,
+  customer_segments: CustomerSegmentsSchema,
+  suggested_pricing: SuggestedPricingSchema,
+  opportunity_areas: OpportunityAreasSchema,
+  risks: RisksSchema,
 
   sources: z.array(
     z.object({
@@ -133,6 +150,43 @@ export const FeasibilityResponseSchema = z.object({
 });
 
 export type FeasibilityResponse = z.infer<typeof FeasibilityResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// FeasibilityRequest (incoming POST body)
+// ---------------------------------------------------------------------------
+
+export const FeasibilityRequestSchema = z.object({
+  location: z.string().min(1),
+  business_idea: z.string().min(1),
+  capital_inr: z.number().positive(),
+  mode: ModeSchema,
+  current_revenue_inr: z.number().positive().optional(),
+  monthly_expenses_inr: z.number().positive().optional(),
+});
+
+export type FeasibilityRequest = z.infer<typeof FeasibilityRequestSchema>;
+
+// ---------------------------------------------------------------------------
+// FeasibilityModelOutput — the analytical-only shape we ask the model to
+// produce. meta, inputs, and sources are always server-computed and are
+// never part of what we ask the model for.
+// ---------------------------------------------------------------------------
+
+export const FeasibilityModelOutputSchema = z.object({
+  verdict_input: VerdictInputSchema,
+  local_demand: LocalDemandSchema,
+  competitors: CompetitorsSchema,
+  customer_segments: CustomerSegmentsSchema,
+  suggested_pricing: SuggestedPricingSchema,
+  opportunity_areas: OpportunityAreasSchema,
+  risks: RisksSchema,
+});
+
+export type FeasibilityModelOutput = z.infer<typeof FeasibilityModelOutputSchema>;
+
+export const feasibilityModelOutputJsonSchema = zodToJsonSchema(FeasibilityModelOutputSchema, {
+  $refStrategy: "none",
+}) as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // FeasibilityError
