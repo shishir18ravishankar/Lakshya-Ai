@@ -56,16 +56,10 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const {
-    location,
-    business_idea,
-    capital_inr,
-    mode,
-    current_revenue_inr,
-    monthly_expenses_inr,
-  } = parsedRequest.data;
+  const { location, businessCategory, marginCapital, mode, current_revenue_inr, monthly_expenses_inr } =
+    parsedRequest.data;
 
-  const sector = inferSector(business_idea);
+  const sector = inferSector(businessCategory);
 
   let rows;
   try {
@@ -83,8 +77,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const userMessage = buildUserMessage({
     location,
-    business_idea,
-    capital_inr,
+    businessCategory,
+    marginCapital,
     mode,
     current_revenue_inr,
     monthly_expenses_inr,
@@ -103,8 +97,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const inputs: FeasibilityResponse["inputs"] = {
     location: userInputTag(location),
-    business_idea: userInputTag(business_idea),
-    capital_inr: userInputTag(capital_inr),
+    business_category: userInputTag(businessCategory),
+    margin_capital_inr: userInputTag(marginCapital),
   };
   if (current_revenue_inr !== undefined) {
     inputs.current_revenue_inr = userInputTag(current_revenue_inr);
@@ -117,7 +111,7 @@ export async function POST(request: Request): Promise<Response> {
     ok: true as const,
     meta: {
       location,
-      business_idea,
+      business_category: businessCategory,
       sector_inferred: sector,
       mode,
       grounding_rows_supplied: rows.length,

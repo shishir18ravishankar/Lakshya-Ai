@@ -6,7 +6,7 @@ import type { GroundingRow } from "./mock-grounding";
 // passed through enforceTagsAndBuildSources (lib/ai/enforce-tags.ts) before
 // it becomes part of a FeasibilityResponse.
 
-export const SYSTEM_PROMPT = `You are a business feasibility analyst producing a structured JSON report for a small business owner or aspiring entrepreneur in India. You will be given the user's business idea, location, and financial inputs, along with zero or more "grounding rows" of verified local statistics.
+export const SYSTEM_PROMPT = `You are a business feasibility analyst producing a structured JSON report for a small business owner or aspiring entrepreneur in India. You will be given the user's business category, location, available capital, and growth stage (start or scale — scale-stage businesses may also include current revenue and expenses), along with zero or more "grounding rows" of verified local statistics.
 
 You must follow these constraints exactly. They are hard requirements, not suggestions:
 
@@ -30,8 +30,8 @@ You must follow these constraints exactly. They are hard requirements, not sugge
 
 export interface BuildUserMessageInput {
   location: string;
-  business_idea: string;
-  capital_inr: number;
+  businessCategory: string;
+  marginCapital: number;
   mode: "start" | "scale";
   current_revenue_inr?: number;
   monthly_expenses_inr?: number;
@@ -41,8 +41,8 @@ export interface BuildUserMessageInput {
 export function buildUserMessage(input: BuildUserMessageInput): string {
   const {
     location,
-    business_idea,
-    capital_inr,
+    businessCategory,
+    marginCapital,
     mode,
     current_revenue_inr,
     monthly_expenses_inr,
@@ -68,8 +68,8 @@ export function buildUserMessage(input: BuildUserMessageInput): string {
 
   const inputLines = [
     `location: ${location}`,
-    `business_idea: ${business_idea}`,
-    `capital_inr: ${capital_inr}`,
+    `businessCategory: ${businessCategory}`,
+    `marginCapital: ${marginCapital}`,
     `mode: ${mode}`,
   ];
   if (current_revenue_inr !== undefined) {
@@ -88,7 +88,7 @@ export function buildUserMessage(input: BuildUserMessageInput): string {
     inputLines.join("\n"),
     "",
     "INSTRUCTIONS",
-    "Output valid JSON only, matching the required schema exactly. The JSON must contain exactly these top-level fields: verdict_input, local_demand, competitors, customer_segments, suggested_pricing, opportunity_areas, risks. Do NOT include meta, inputs, or sources — those are added by the server afterward, not by you. Every leaf field must be tagged. Cite only the grounding row ids listed above; never invent an id.",
+    "Output valid JSON only, matching the required schema exactly. The JSON must contain exactly these top-level fields: verdict_input, local_demand, competitors, customer_segments, suggested_pricing, opportunity_areas, risks, swot (with strengths and weaknesses arrays). Do NOT include meta, inputs, or sources — those are added by the server afterward, not by you. Every leaf field must be tagged. Cite only the grounding row ids listed above; never invent an id.",
   ].join("\n");
 }
 
@@ -98,8 +98,8 @@ const SECTOR_KEYWORDS: Array<{ sector: string; keywords: string[] }> = [
   { sector: "agriculture", keywords: ["farm", "crop", "agriculture", "agri"] },
 ];
 
-export function inferSector(business_idea: string): string | null {
-  const lower = business_idea.toLowerCase();
+export function inferSector(businessCategory: string): string | null {
+  const lower = businessCategory.toLowerCase();
 
   for (const { sector, keywords } of SECTOR_KEYWORDS) {
     if (keywords.some((keyword) => lower.includes(keyword))) {

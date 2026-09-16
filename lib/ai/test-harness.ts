@@ -6,6 +6,7 @@
  * set in the environment.
  */
 
+import "dotenv/config";
 import { callFeasibilityModel } from "./client";
 import { enforceTagsAndBuildSources } from "./enforce-tags";
 import { getGroundingRows, MOCK_GROUNDING_ROWS, NO_MATCH_LOCATION } from "./mock-grounding";
@@ -104,6 +105,10 @@ function runPartA(): void {
         "estimate"
       ),
     ],
+    swot: {
+      strengths: [tagged("Established local craft tradition", "estimate")],
+      weaknesses: [tagged("Limited access to distribution channels", "estimate")],
+    },
   };
 
   const { enforced, sources } = enforceTagsAndBuildSources(fakeModelOutput, MOCK_GROUNDING_ROWS);
@@ -157,8 +162,8 @@ async function runLiveScenario(label: string, location: string, sector: string |
 
   const userMessage = buildUserMessage({
     location,
-    business_idea: "A small workshop making and selling hand-painted wooden toys",
-    capital_inr: 250000,
+    businessCategory: "A small workshop making and selling hand-painted wooden toys",
+    marginCapital: 250000,
     mode: "start",
     grounding_rows: rows,
   });

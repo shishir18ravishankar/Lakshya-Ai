@@ -8,6 +8,7 @@ import {
 
 const MODEL = "gemini-3.7-flash";
 const MAX_OUTPUT_TOKENS = 8192;
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export type CallFeasibilityModelResult =
   | { ok: true; data: FeasibilityModelOutput; modelUsed: string }
@@ -72,9 +73,12 @@ export async function callFeasibilityModel(
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           responseMimeType: "application/json",
           responseJsonSchema: feasibilityModelOutputJsonSchema,
+          httpOptions: { timeout: REQUEST_TIMEOUT_MS },
         },
       });
     } catch (error) {
+      // A timed-out request throws a DOMException, not an ApiError, so it
+      // falls through to the transient/retryable branch below automatically.
       if (isNonRetryableClientError(error)) {
         return {
           ok: false,

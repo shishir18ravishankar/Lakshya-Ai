@@ -89,6 +89,11 @@ export const SuggestedPricingSchema = z.object({
   ),
 });
 
+export const SwotSchema = z.object({
+  strengths: z.array(TaggedSchema(z.string())),
+  weaknesses: z.array(TaggedSchema(z.string())),
+});
+
 export const OpportunityAreasSchema = z.array(TaggedSchema(z.string()));
 
 export const RisksSchema = z.array(
@@ -110,7 +115,7 @@ export const FeasibilityResponseSchema = z.object({
 
   meta: z.object({
     location: z.string(),
-    business_idea: z.string(),
+    business_category: z.string(),
     sector_inferred: z.string().nullable(),
     mode: ModeSchema,
     grounding_rows_supplied: z.number(),
@@ -121,8 +126,8 @@ export const FeasibilityResponseSchema = z.object({
 
   inputs: z.object({
     location: TaggedSchema(z.string()),
-    business_idea: TaggedSchema(z.string()),
-    capital_inr: TaggedSchema(z.number()),
+    business_category: TaggedSchema(z.string()),
+    margin_capital_inr: TaggedSchema(z.number()),
     current_revenue_inr: TaggedSchema(z.number()).optional(), // scale mode only
     monthly_expenses_inr: TaggedSchema(z.number()).optional(), // scale mode only
   }),
@@ -134,6 +139,7 @@ export const FeasibilityResponseSchema = z.object({
   suggested_pricing: SuggestedPricingSchema,
   opportunity_areas: OpportunityAreasSchema,
   risks: RisksSchema,
+  swot: SwotSchema,
 
   sources: z.array(
     z.object({
@@ -157,8 +163,8 @@ export type FeasibilityResponse = z.infer<typeof FeasibilityResponseSchema>;
 
 export const FeasibilityRequestSchema = z.object({
   location: z.string().min(1),
-  business_idea: z.string().min(1),
-  capital_inr: z.number().positive(),
+  businessCategory: z.string().min(1),
+  marginCapital: z.number().positive(),
   mode: ModeSchema,
   current_revenue_inr: z.number().positive().optional(),
   monthly_expenses_inr: z.number().positive().optional(),
@@ -180,6 +186,7 @@ export const FeasibilityModelOutputSchema = z.object({
   suggested_pricing: SuggestedPricingSchema,
   opportunity_areas: OpportunityAreasSchema,
   risks: RisksSchema,
+  swot: SwotSchema,
 });
 
 export type FeasibilityModelOutput = z.infer<typeof FeasibilityModelOutputSchema>;
