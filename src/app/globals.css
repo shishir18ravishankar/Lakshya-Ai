@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Clean Light Institutional Foundation */
+    --background: 210 20% 98%;       /* #f8fafc warm-white / light neutral */
+    --foreground: 222 47% 11%;       /* #0f172a deep navy text */
+
+    --card: 0 0% 100%;               /* #ffffff pure white card */
+    --card-foreground: 222 47% 11%;  /* #0f172a deep navy card text */
+
+    --primary: 221 83% 53%;          /* #2563eb professional blue */
+    --primary-foreground: 0 0% 100%; /* #ffffff white button text */
+    --primary-hover: 221 83% 45%;    /* #1d4ed8 deeper blue hover */
+
+    --secondary: 210 40% 96%;        /* #f1f5f9 light slate */
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;            /* #f1f5f9 muted background */
+    --muted-foreground: 215 16% 47%; /* #64748b slate gray text */
+
+    --border: 214 32% 91%;           /* #e2e8f0 subtle border */
+    --input: 214 32% 91%;            /* #e2e8f0 input border */
+    --ring: 221 83% 53%;             /* #2563eb focus ring */
+
+    /* Semantic Status Tokens (Institutional) */
+    --success: 142 71% 35%;          /* #15803d restrained green */
+    --success-foreground: 0 0% 100%;
+    --success-surface: 142 72% 96%;  /* #f0fdf4 light green pill */
+
+    --warning: 38 92% 40%;           /* #b45309 amber */
+    --warning-foreground: 0 0% 100%;
+    --warning-surface: 38 92% 96%;   /* #fffbeb light amber pill */
+
+    --danger: 0 72% 45%;             /* #b91c1c red */
+    --danger-foreground: 0 0% 100%;
+    --danger-surface: 0 86% 97%;     /* #fef2f2 light red pill */
+  }
+
+  html {
+    scroll-behavior: smooth;
+    color-scheme: light;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Clean institutional card style */
+  .gov-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  }
+
+  /* Subtle institutional badge background */
+  .gov-subtle-badge {
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+  }
+}
