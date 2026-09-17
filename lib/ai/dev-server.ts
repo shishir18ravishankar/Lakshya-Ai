@@ -1,7 +1,7 @@
 /**
  * Minimal local-only HTTP server for exercising the feasibility route
  * without a running Next.js app. Node's built-in http module only — no
- * Express, no new runtime dependencies. Reuses app/api/feasibility/route.ts's
+ * Express, no new runtime dependencies. Reuses src/app/api/feasibility/route.ts's
  * POST handler directly; no logic is duplicated here.
  *
  * Run: npm run dev:test
@@ -9,7 +9,7 @@
 
 import "dotenv/config";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { POST } from "../../app/api/feasibility/route";
+import { POST } from "../../src/app/api/feasibility/route";
 
 const PORT = 4000;
 

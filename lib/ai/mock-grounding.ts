@@ -1,3 +1,8 @@
+import {
+  REAL_GROUNDING_BANGALORE_RURAL,
+  REAL_GROUNDING_BANGALORE_RURAL_SECTORAL,
+} from "./real-grounding-bangalore-rural";
+
 export interface GroundingRow {
   id: string; // short stable id, e.g. "gd_001"
   location: string;
@@ -138,14 +143,31 @@ export const MOCK_GROUNDING_ROWS: GroundingRow[] = [
 // zero-grounding-rows / all-estimate-tags path.
 export const NO_MATCH_LOCATION = "SomeCityWithNoData";
 
+// Channapatna is a taluk within Bangalore Rural district — the real dataset
+// is filed under the district name, so both aliases must resolve to it.
+const REAL_DATA_LOCATION_ALIASES = new Set(["channapatna", "bangalore rural"]);
+
+const ALL_REAL_GROUNDING_ROWS: GroundingRow[] = [
+  ...REAL_GROUNDING_BANGALORE_RURAL,
+  ...REAL_GROUNDING_BANGALORE_RURAL_SECTORAL,
+];
+
 export function getGroundingRows(location: string, sector?: string): GroundingRow[] {
   const normalizedLocation = location.trim().toLowerCase();
+  const normalizedSector = sector?.trim().toLowerCase();
+  const usesRealData = REAL_DATA_LOCATION_ALIASES.has(normalizedLocation);
 
-  return MOCK_GROUNDING_ROWS.filter((row) => {
-    const locationMatches = row.location.toLowerCase() === normalizedLocation;
-    if (!locationMatches) return false;
+  const candidateRows = usesRealData ? ALL_REAL_GROUNDING_ROWS : MOCK_GROUNDING_ROWS;
 
-    if (sector === undefined) return true;
-    return row.sector.toLowerCase() === sector.trim().toLowerCase();
+  return candidateRows.filter((row) => {
+    // Real rows are all filed under "Bangalore Rural" regardless of whether
+    // the caller asked for "Channapatna" or "Bangalore Rural" directly, so
+    // the per-row location check only applies to the mock data path.
+    if (!usesRealData && row.location.toLowerCase() !== normalizedLocation) {
+      return false;
+    }
+
+    if (normalizedSector === undefined) return true;
+    return row.sector.toLowerCase() === normalizedSector;
   });
 }

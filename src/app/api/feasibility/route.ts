@@ -1,7 +1,7 @@
-import { callFeasibilityModel } from "../../../lib/ai/client";
-import { enforceTagsAndBuildSources } from "../../../lib/ai/enforce-tags";
-import { getGroundingRows } from "../../../lib/ai/mock-grounding";
-import { buildUserMessage, inferSector } from "../../../lib/ai/prompt";
+import { callFeasibilityModel } from "../../../../lib/ai/client";
+import { enforceTagsAndBuildSources } from "../../../../lib/ai/enforce-tags";
+import { getGroundingRows } from "../../../../lib/ai/mock-grounding";
+import { buildUserMessage, inferSector } from "../../../../lib/ai/prompt";
 import {
   FeasibilityErrorSchema,
   FeasibilityRequestSchema,
@@ -9,7 +9,7 @@ import {
   type FeasibilityError,
   type FeasibilityResponse,
   type Tagged,
-} from "../../../lib/ai/types";
+} from "../../../../lib/ai/types";
 
 function errorResponse(error: FeasibilityError["error"], status: number): Response {
   const body: FeasibilityError = FeasibilityErrorSchema.parse({ ok: false, error });
