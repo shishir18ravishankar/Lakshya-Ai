@@ -145,7 +145,10 @@ export const NO_MATCH_LOCATION = "SomeCityWithNoData";
 
 // Channapatna is a taluk within Bangalore Rural district — the real dataset
 // is filed under the district name, so both aliases must resolve to it.
-const REAL_DATA_LOCATION_ALIASES = new Set(["channapatna", "bangalore rural"]);
+// Matching is substring-based (not exact) because real-world inputs are full
+// addresses like "Kadathanamale, Bengaluru Rural, Karnataka" — any place
+// within the district should still resolve to the district-level dataset.
+const REAL_DATA_LOCATION_ALIASES = ["channapatna", "bangalore rural", "bengaluru rural"];
 
 const ALL_REAL_GROUNDING_ROWS: GroundingRow[] = [
   ...REAL_GROUNDING_BANGALORE_RURAL,
@@ -155,7 +158,9 @@ const ALL_REAL_GROUNDING_ROWS: GroundingRow[] = [
 export function getGroundingRows(location: string, sector?: string): GroundingRow[] {
   const normalizedLocation = location.trim().toLowerCase();
   const normalizedSector = sector?.trim().toLowerCase();
-  const usesRealData = REAL_DATA_LOCATION_ALIASES.has(normalizedLocation);
+  const usesRealData = REAL_DATA_LOCATION_ALIASES.some((alias) =>
+    normalizedLocation.includes(alias)
+  );
 
   const candidateRows = usesRealData ? ALL_REAL_GROUNDING_ROWS : MOCK_GROUNDING_ROWS;
 

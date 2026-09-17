@@ -196,6 +196,40 @@ export const feasibilityModelOutputJsonSchema = zodToJsonSchema(FeasibilityModel
 }) as Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
+// Groq-only split of FeasibilityModelOutput into two smaller calls.
+// Groq's gpt-oss-20b unreliably produces valid structured output against the
+// full 8-field schema in one shot (missing fields, malformed top-level
+// structure), so callGroq() (lib/ai/client.ts) asks for these two halves
+// separately and merges them back into FeasibilityModelOutputSchema's shape.
+// ---------------------------------------------------------------------------
+
+export const GroqCallASchema = z.object({
+  verdict_input: VerdictInputSchema,
+  local_demand: LocalDemandSchema,
+  competitors: CompetitorsSchema,
+  customer_segments: CustomerSegmentsSchema,
+});
+
+export type GroqCallA = z.infer<typeof GroqCallASchema>;
+
+export const groqCallAJsonSchema = zodToJsonSchema(GroqCallASchema, {
+  $refStrategy: "none",
+}) as Record<string, unknown>;
+
+export const GroqCallBSchema = z.object({
+  suggested_pricing: SuggestedPricingSchema,
+  opportunity_areas: OpportunityAreasSchema,
+  risks: RisksSchema,
+  swot: SwotSchema,
+});
+
+export type GroqCallB = z.infer<typeof GroqCallBSchema>;
+
+export const groqCallBJsonSchema = zodToJsonSchema(GroqCallBSchema, {
+  $refStrategy: "none",
+}) as Record<string, unknown>;
+
+// ---------------------------------------------------------------------------
 // FeasibilityError
 // ---------------------------------------------------------------------------
 

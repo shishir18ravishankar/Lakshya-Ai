@@ -1,9 +1,14 @@
 import { ApiError, GoogleGenAI, type GenerateContentResponse } from "@google/genai";
 import OpenAI from "openai";
+import type { ZodType } from "zod";
 import { SYSTEM_PROMPT } from "./prompt";
 import {
   FeasibilityModelOutputSchema,
   feasibilityModelOutputJsonSchema,
+  GroqCallASchema,
+  GroqCallBSchema,
+  groqCallAJsonSchema,
+  groqCallBJsonSchema,
   type FeasibilityModelOutput,
 } from "./types";
 
@@ -164,6 +169,14 @@ async function callGemini(userMessage: string): Promise<CallFeasibilityModelResu
 // Groq — fallback provider, attempted once if Gemini didn't return ok:true.
 // Groq's API is OpenAI-compatible, so it's reached through the openai SDK
 // pointed at Groq's base URL.
+//
+// The full 8-field FeasibilityModelOutputSchema is too large for
+// gpt-oss-20b's structured-output decoding to reliably satisfy in one shot —
+// observed live failures include missing required fields and outright
+// malformed top-level structure (a JSON array instead of an object, with key
+// names as loose string fragments). This is a genuine model capability
+// limit on this schema's size, not a config issue, so the single call is
+// split into two smaller sequential calls, each against half the schema.
 // ---------------------------------------------------------------------------
 
 function isNonRetryableGroqError(error: unknown): boolean {
@@ -172,6 +185,140 @@ function isNonRetryableGroqError(error: unknown): boolean {
   }
   if (error.status === 429) return false;
   return error.status >= 400 && error.status < 500;
+}
+
+const GROQ_CALL_A_FIELDS = [
+  "verdict_input",
+  "local_demand",
+  "competitors",
+  "customer_segments",
+] as const;
+const GROQ_CALL_B_FIELDS = ["suggested_pricing", "opportunity_areas", "risks", "swot"] as const;
+
+// The caller-supplied userMessage already lists the full 8-field output
+// contract (see buildUserMessage in ./prompt); this override narrows that
+// down to the subset each split call is actually responsible for, without
+// touching the shared SYSTEM_PROMPT or buildUserMessage itself.
+function scopeUserMessageToFields(userMessage: string, fields: readonly string[]): string {
+  return [
+    userMessage,
+    "",
+    "SCOPE OVERRIDE FOR THIS RESPONSE",
+    `Disregard any other top-level field list mentioned above. For this response, output valid JSON containing ONLY these top-level fields, and no others: ${fields.join(", ")}.`,
+  ].join("\n");
+}
+
+type GroqSubcallResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; result: CallFeasibilityModelResult & { ok: false } };
+
+async function callGroqSubset<T>(
+  client: OpenAI,
+  userMessage: string,
+  schemaName: string,
+  jsonSchema: Record<string, unknown>,
+  zodSchema: ZodType<T>
+): Promise<GroqSubcallResult<T>> {
+  let completion: OpenAI.Chat.Completions.ChatCompletion;
+  try {
+    // maxRetries: 0 — this is the fallback's single attempt per sub-call; the
+    // OpenAI SDK otherwise retries transient failures internally by default.
+    completion = await client.chat.completions.create(
+      {
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: MAX_OUTPUT_TOKENS,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: schemaName,
+            schema: jsonSchema,
+            strict: true,
+          },
+        },
+      },
+      { maxRetries: 0, timeout: REQUEST_TIMEOUT_MS }
+    );
+  } catch (error) {
+    if (isNonRetryableGroqError(error)) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          error: {
+            code: "AI_UNAVAILABLE",
+            message: "The AI fallback service rejected the request.",
+            retryable: false,
+          },
+        },
+      };
+    }
+
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        error: {
+          code: "AI_UNAVAILABLE",
+          message: "The AI fallback service is temporarily unavailable.",
+          retryable: true,
+        },
+      },
+    };
+  }
+
+  const text = completion.choices[0]?.message?.content;
+
+  if (text === undefined || text === null) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        error: {
+          code: "AI_PARSE_FAILED",
+          message: "The AI fallback response did not contain any text.",
+          retryable: true,
+        },
+      },
+    };
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(text);
+  } catch {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        error: {
+          code: "AI_PARSE_FAILED",
+          message: "The AI fallback response was not valid JSON.",
+          retryable: true,
+        },
+      },
+    };
+  }
+
+  const parsed = zodSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        error: {
+          code: "AI_PARSE_FAILED",
+          message: "The AI fallback response did not match the expected schema.",
+          retryable: true,
+        },
+      },
+    };
+  }
+
+  return { ok: true, data: parsed.data };
 }
 
 async function callGroq(userMessage: string): Promise<CallFeasibilityModelResult> {
@@ -189,80 +336,27 @@ async function callGroq(userMessage: string): Promise<CallFeasibilityModelResult
 
   const client = new OpenAI({ apiKey, baseURL: GROQ_BASE_URL });
 
-  let completion: OpenAI.Chat.Completions.ChatCompletion;
-  try {
-    // maxRetries: 0 — this is the fallback's single attempt; the OpenAI SDK
-    // otherwise retries transient failures internally by default.
-    completion = await client.chat.completions.create(
-      {
-        model: GROQ_MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        max_tokens: MAX_OUTPUT_TOKENS,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "feasibility_model_output",
-            schema: feasibilityModelOutputJsonSchema,
-            strict: true,
-          },
-        },
-      },
-      { maxRetries: 0, timeout: REQUEST_TIMEOUT_MS }
-    );
-  } catch (error) {
-    if (isNonRetryableGroqError(error)) {
-      return {
-        ok: false,
-        error: {
-          code: "AI_UNAVAILABLE",
-          message: "The AI fallback service rejected the request.",
-          retryable: false,
-        },
-      };
-    }
+  const callA = await callGroqSubset(
+    client,
+    scopeUserMessageToFields(userMessage, GROQ_CALL_A_FIELDS),
+    "feasibility_model_output_part_a",
+    groqCallAJsonSchema,
+    GroqCallASchema
+  );
+  if (!callA.ok) return callA.result;
 
-    return {
-      ok: false,
-      error: {
-        code: "AI_UNAVAILABLE",
-        message: "The AI fallback service is temporarily unavailable.",
-        retryable: true,
-      },
-    };
-  }
+  const callB = await callGroqSubset(
+    client,
+    scopeUserMessageToFields(userMessage, GROQ_CALL_B_FIELDS),
+    "feasibility_model_output_part_b",
+    groqCallBJsonSchema,
+    GroqCallBSchema
+  );
+  if (!callB.ok) return callB.result;
 
-  const text = completion.choices[0]?.message?.content;
-
-  if (text === undefined || text === null) {
-    return {
-      ok: false,
-      error: {
-        code: "AI_PARSE_FAILED",
-        message: "The AI fallback response did not contain any text.",
-        retryable: true,
-      },
-    };
-  }
-
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(text);
-  } catch {
-    return {
-      ok: false,
-      error: {
-        code: "AI_PARSE_FAILED",
-        message: "The AI fallback response was not valid JSON.",
-        retryable: true,
-      },
-    };
-  }
-
-  const parsed = FeasibilityModelOutputSchema.safeParse(parsedJson);
-  if (!parsed.success) {
+  const merged = { ...callA.data, ...callB.data };
+  const validated = FeasibilityModelOutputSchema.safeParse(merged);
+  if (!validated.success) {
     return {
       ok: false,
       error: {
@@ -273,7 +367,7 @@ async function callGroq(userMessage: string): Promise<CallFeasibilityModelResult
     };
   }
 
-  return { ok: true, data: parsed.data, modelUsed: GROQ_MODEL };
+  return { ok: true, data: validated.data, modelUsed: GROQ_MODEL };
 }
 
 // ---------------------------------------------------------------------------
