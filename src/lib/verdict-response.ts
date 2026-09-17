@@ -1,5 +1,6 @@
 import type { FeasibilityResponse } from "../../lib/ai/types";
 import { generateAmortizationSchedule, type FinancialResult } from "../../lib/finance/calculator";
+import { STANDARD_NSFDC_ACTION_PLAN } from "../../lib/action-plan";
 import type { VerdictStatus } from "@/types/verdict";
 
 const VERDICT_LABEL: Record<string, VerdictStatus> = {
@@ -86,5 +87,9 @@ export function buildVerdictResponse(feasibilityJson: FeasibilityResponse, finan
     },
 
     sources: feasibilityJson.sources,
+
+    // Fixed, standard NSFDC application sequence — the same for every
+    // user, not derived from this specific business/feasibility call.
+    actionPlan: STANDARD_NSFDC_ACTION_PLAN,
   };
 }

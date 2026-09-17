@@ -23,13 +23,14 @@ import { AlertCircle, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 // component rather than re-declaring the shape a third time here.
 type RealVerdictResponse = Omit<
   UnifiedVerdictResponse,
-  "marketReach" | "swot" | "competitorMapping" | "suggestedPricing" | "sources"
+  "marketReach" | "swot" | "competitorMapping" | "suggestedPricing" | "sources" | "actionPlan"
 > & {
   marketReach?: React.ComponentProps<typeof MarketReachSection>["marketReach"];
   swot?: React.ComponentProps<typeof SwotAnalysisSection>["swot"];
   competitorMapping?: React.ComponentProps<typeof CompetitorMappingSection>["competitors"];
   suggestedPricing?: React.ComponentProps<typeof PricingRecommendationSection>["pricing"];
   sources?: React.ComponentProps<typeof SourcesSection>["sources"];
+  actionPlan?: React.ComponentProps<typeof ActionPlanSection>["actionPlan"];
 };
 
 export default function ReportPage() {
