@@ -199,14 +199,26 @@ const GROQ_CALL_B_FIELDS = ["suggested_pricing", "opportunity_areas", "risks", "
 // contract (see buildUserMessage in ./prompt); this override narrows that
 // down to the subset each split call is actually responsible for, without
 // touching the shared SYSTEM_PROMPT or buildUserMessage itself.
-function scopeUserMessageToFields(userMessage: string, fields: readonly string[]): string {
-  return [
+function scopeUserMessageToFields(
+  userMessage: string,
+  fields: readonly string[],
+  extraLine?: string
+): string {
+  const lines = [
     userMessage,
     "",
     "SCOPE OVERRIDE FOR THIS RESPONSE",
     `Disregard any other top-level field list mentioned above. For this response, output valid JSON containing ONLY these top-level fields, and no others: ${fields.join(", ")}.`,
-  ].join("\n");
+  ];
+  if (extraLine) lines.push(extraLine);
+  return lines.join("\n");
 }
+
+// Observed live: Groq's model consistently omits competitors.summary while
+// correctly including competitors.intensity and competitors.players — a
+// call-A-specific omission, so the reminder is scoped to call A only.
+const COMPETITORS_SUMMARY_REMINDER =
+  "The competitors object requires all three fields: summary, intensity, and players. Do not omit summary.";
 
 type GroqSubcallResult<T> =
   | { ok: true; data: T }
@@ -338,7 +350,7 @@ async function callGroq(userMessage: string): Promise<CallFeasibilityModelResult
 
   const callA = await callGroqSubset(
     client,
-    scopeUserMessageToFields(userMessage, GROQ_CALL_A_FIELDS),
+    scopeUserMessageToFields(userMessage, GROQ_CALL_A_FIELDS, COMPETITORS_SUMMARY_REMINDER),
     "feasibility_model_output_part_a",
     groqCallAJsonSchema,
     GroqCallASchema
