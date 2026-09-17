@@ -1,5 +1,5 @@
 import type { FeasibilityResponse } from "../../lib/ai/types";
-import type { FinancialResult } from "../../lib/finance/calculator";
+import { generateAmortizationSchedule, type FinancialResult } from "../../lib/finance/calculator";
 import type { VerdictStatus } from "@/types/verdict";
 
 const VERDICT_LABEL: Record<string, VerdictStatus> = {
@@ -13,9 +13,6 @@ const VERDICT_LABEL: Record<string, VerdictStatus> = {
 // expect. Extracted out of route.ts because Next.js's App Router only
 // allows HTTP-method exports from a route file.
 export function buildVerdictResponse(feasibilityJson: FeasibilityResponse, financial: FinancialResult) {
-  const priceMins = feasibilityJson.suggested_pricing.items.map((item) => item.value.price_min_inr);
-  const priceMaxes = feasibilityJson.suggested_pricing.items.map((item) => item.value.price_max_inr);
-
   return {
     verdict: VERDICT_LABEL[feasibilityJson.verdict_input.recommendation.value] ?? "Review",
     reason: feasibilityJson.verdict_input.rationale.value,
@@ -46,15 +43,7 @@ export function buildVerdictResponse(feasibilityJson: FeasibilityResponse, finan
 
     competitorMapping: feasibilityJson.competitors,
 
-    suggestedPricing: {
-      recommendedPriceRange:
-        priceMins.length > 0 ? { min: Math.min(...priceMins), max: Math.max(...priceMaxes) } : undefined,
-      rationale: feasibilityJson.suggested_pricing.summary.value,
-      pricingFactors: feasibilityJson.suggested_pricing.items.map(
-        (item) =>
-          `${item.value.product}: ₹${item.value.price_min_inr}–₹${item.value.price_max_inr} (${item.value.basis})`
-      ),
-    },
+    suggestedPricing: feasibilityJson.suggested_pricing,
 
     financials: {
       projectCost: financial.projectCost ?? undefined,
@@ -81,10 +70,9 @@ export function buildVerdictResponse(feasibilityJson: FeasibilityResponse, finan
             explanation: "Project cost falls outside both configured financing schemes.",
           },
 
-    // The finance engine produces aggregate quarterly-installment/interest
-    // totals, not a full per-installment amortization table, so
-    // installments stays unset here — the section renders the aggregate
-    // summary without a row-by-row breakdown.
+    // installments is a deterministic derivation from the same finance
+    // engine numbers above (declining-balance amortization), not
+    // separately estimated data — see generateAmortizationSchedule.
     repaymentSchedule: {
       loanAmount: financial.actualLoanAmount ?? undefined,
       annualInterestRatePct: financial.interestRate ?? undefined,
@@ -93,6 +81,7 @@ export function buildVerdictResponse(feasibilityJson: FeasibilityResponse, finan
       quarterlyInstallment: financial.quarterlyInstallment ?? undefined,
       totalInterest: financial.totalInterest ?? undefined,
       totalRepayment: financial.totalRepayment ?? undefined,
+      installments: generateAmortizationSchedule(financial),
       explanation: financial.assumptions[0],
     },
 

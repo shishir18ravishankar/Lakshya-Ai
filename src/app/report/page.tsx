@@ -17,14 +17,18 @@ import { ActionPlanSection } from "@/components/report/action-plan-section";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, Loader2, RefreshCw } from "lucide-react";
 
-// /api/verdict now returns real tagged data for these four fields (matching
-// the AI pipeline's output shape), not UnifiedVerdictResponse's plain-value
+// /api/verdict now returns real tagged data for these fields (matching the
+// AI pipeline's output shape), not UnifiedVerdictResponse's plain-value
 // declarations — pulling the actual prop types straight from each adapted
 // component rather than re-declaring the shape a third time here.
-type RealVerdictResponse = Omit<UnifiedVerdictResponse, "marketReach" | "swot" | "competitorMapping" | "sources"> & {
+type RealVerdictResponse = Omit<
+  UnifiedVerdictResponse,
+  "marketReach" | "swot" | "competitorMapping" | "suggestedPricing" | "sources"
+> & {
   marketReach?: React.ComponentProps<typeof MarketReachSection>["marketReach"];
   swot?: React.ComponentProps<typeof SwotAnalysisSection>["swot"];
   competitorMapping?: React.ComponentProps<typeof CompetitorMappingSection>["competitors"];
+  suggestedPricing?: React.ComponentProps<typeof PricingRecommendationSection>["pricing"];
   sources?: React.ComponentProps<typeof SourcesSection>["sources"];
 };
 

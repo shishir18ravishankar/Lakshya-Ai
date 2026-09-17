@@ -1,15 +1,29 @@
 import React from "react";
-import { SuggestedPricingData } from "@/types/verdict";
 import { DataBadge } from "@/components/ui/data-badge";
-import { formatINR } from "@/lib/utils";
-import { Tag, TrendingUp, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { tagToBadgeType, formatINR } from "@/lib/utils";
+import { Tag, AlertCircle } from "lucide-react";
+import type { Tagged } from "../../../lib/ai/types";
 
+// My SuggestedPricingSchema is {summary, items[]} — no averageCostPerUnit or
+// suggestedMarginPct anywhere in the pipeline, so those metric cards (and
+// the source/year footer, which duplicates the dedicated Sources section)
+// are dropped rather than filled with invented numbers.
 interface PricingRecommendationSectionProps {
-  pricing?: SuggestedPricingData | null;
+  pricing?: {
+    summary: Tagged<string>;
+    items: Tagged<{
+      product: string;
+      price_min_inr: number;
+      price_max_inr: number;
+      basis: string;
+    }>[];
+  } | null;
 }
 
 export function PricingRecommendationSection({ pricing }: PricingRecommendationSectionProps) {
-  if (!pricing || (!pricing.averageCostPerUnit && !pricing.recommendedPriceRange && !pricing.rationale)) {
+  const items = pricing?.items ?? [];
+
+  if (!pricing || items.length === 0) {
     return (
       <section aria-labelledby="pricing-recommendation-heading" className="space-y-4">
         <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm space-y-4">
@@ -43,8 +57,8 @@ export function PricingRecommendationSection({ pricing }: PricingRecommendationS
     );
   }
 
-  const minPrice = pricing.recommendedPriceRange?.min;
-  const maxPrice = pricing.recommendedPriceRange?.max;
+  const minPrice = Math.min(...items.map((item) => item.value.price_min_inr));
+  const maxPrice = Math.max(...items.map((item) => item.value.price_max_inr));
 
   return (
     <section aria-labelledby="pricing-recommendation-heading" className="space-y-4">
@@ -70,112 +84,57 @@ export function PricingRecommendationSection({ pricing }: PricingRecommendationS
           </div>
         </div>
 
-        {/* 3 Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Average Cost per unit */}
-          {pricing.averageCostPerUnit !== undefined && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Estimated Unit Cost
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black text-slate-900">
-                  {formatINR(pricing.averageCostPerUnit)}
-                </span>
-                <span className="text-xs text-slate-500 font-medium">/ unit</span>
-              </div>
-              <span className="inline-block text-[10px] text-slate-500 font-mono">
-                Input material + overheads
-              </span>
-            </div>
-          )}
-
-          {/* Recommended Price Corridor */}
-          {(minPrice !== undefined || maxPrice !== undefined) && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Suggested Selling Price
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black text-blue-700">
-                  {minPrice !== undefined && maxPrice !== undefined
-                    ? `${formatINR(minPrice)} – ${formatINR(maxPrice)}`
-                    : formatINR(minPrice ?? maxPrice ?? 0)}
-                </span>
-              </div>
-              <span className="inline-block text-[10px] text-slate-500 font-mono">
-                Wholesale floor to retail corridor
-              </span>
-            </div>
-          )}
-
-          {/* Suggested Gross Margin */}
-          {pricing.suggestedMarginPct !== undefined && (
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Suggested Margin
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black text-emerald-700">
-                  {pricing.suggestedMarginPct}%
-                </span>
-                <span className="text-xs text-emerald-700 font-semibold flex items-center gap-0.5">
-                  <TrendingUp className="h-3 w-3" />
-                  Target
-                </span>
-              </div>
-              <span className="inline-block text-[10px] text-slate-500 font-mono">
-                Net return after cost recovery
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Costing Rationale & Pricing Factors */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-1">
-          {/* Detailed Narrative */}
-          {pricing.rationale && (
-            <div className={`${pricing.pricingFactors?.length ? "lg:col-span-7" : "lg:col-span-12"} p-4 rounded-lg bg-slate-50/70 border border-slate-200/80 space-y-2`}>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block">
-                Pricing Reasoning & Context
-              </span>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                {pricing.rationale}
-              </p>
-            </div>
-          )}
-
-          {/* Key Cost Drivers */}
-          {pricing.pricingFactors && pricing.pricingFactors.length > 0 && (
-            <div className="lg:col-span-5 space-y-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block">
-                Key Pricing Considerations
-              </span>
-              <ul className="space-y-2">
-                {pricing.pricingFactors.map((factor, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-start gap-2 text-xs text-slate-700 p-2 rounded-md bg-white border border-slate-200 shadow-2xs"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
-                    <span className="leading-tight">{factor}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Source citation if available */}
-        {pricing.source && (
-          <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <FileText className="h-3.5 w-3.5 text-slate-400" />
-            <span>
-              Source: <strong className="text-slate-700 font-semibold">{pricing.source}</strong>
-              {pricing.year ? ` • Year: ${pricing.year}` : ""}
+        {/* Recommended Price Corridor */}
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-1 max-w-xs">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+            Suggested Selling Price
+          </span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-black text-blue-700">
+              {minPrice === maxPrice ? formatINR(minPrice) : `${formatINR(minPrice)} – ${formatINR(maxPrice)}`}
             </span>
           </div>
-        )}
+          <span className="inline-block text-[10px] text-slate-500 font-mono">
+            Range across all suggested products
+          </span>
+        </div>
+
+        {/* Costing Rationale */}
+        <div className="p-4 rounded-lg bg-slate-50/70 border border-slate-200/80 space-y-2 flex items-start gap-2 flex-wrap">
+          <div className="flex-1 min-w-0 space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block">
+              Pricing Reasoning & Context
+            </span>
+            <p className="text-xs text-slate-700 leading-relaxed">
+              {pricing.summary.value}
+            </p>
+          </div>
+          <DataBadge type={tagToBadgeType(pricing.summary.tag)} size="sm" showTooltip />
+        </div>
+
+        {/* Per-product pricing */}
+        <div className="space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 block">
+            Suggested Product Pricing
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {items.map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1.5"
+              >
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-slate-900 flex-1 min-w-0">{item.value.product}</span>
+                  <DataBadge type={tagToBadgeType(item.tag)} size="sm" showTooltip />
+                </div>
+                <div className="text-sm font-extrabold text-blue-700">
+                  {formatINR(item.value.price_min_inr)} – {formatINR(item.value.price_max_inr)}
+                </div>
+                <p className="text-[11px] text-slate-600 leading-snug">{item.value.basis}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

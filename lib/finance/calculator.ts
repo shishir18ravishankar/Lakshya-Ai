@@ -194,3 +194,56 @@ export function calculateFinancialStructure({ mode, marginCapital }: FinanceInpu
     calculationStatus: "valid",
   };
 }
+
+export interface AmortizationInstallment {
+  installmentNumber: number;
+  duePeriod: string;
+  principal: number;
+  interest: number;
+  totalInstallment: number;
+  outstandingBalance: number;
+}
+
+// Deterministic per-quarter breakdown, derived from the same numbers
+// calculateFinancialStructure already computed (capitalizedPrincipal,
+// quarterlyInterestRate, numberOfInstallments, quarterlyInstallment) via
+// standard declining-balance amortization — not separately estimated data.
+// Quarter numbering accounts for the moratorium: repayment starts after
+// moratoriumMonths/3 quarters have already elapsed.
+export function generateAmortizationSchedule(result: FinancialResult): AmortizationInstallment[] {
+  if (
+    result.calculationStatus !== "valid" ||
+    result.capitalizedPrincipal === null ||
+    result.quarterlyInterestRate === null ||
+    result.numberOfInstallments === null ||
+    result.quarterlyInstallment === null ||
+    result.moratoriumMonths === null
+  ) {
+    return [];
+  }
+
+  const moratoriumQuarters = result.moratoriumMonths / 3;
+  let balance = result.capitalizedPrincipal;
+  const installments: AmortizationInstallment[] = [];
+
+  for (let i = 1; i <= result.numberOfInstallments; i++) {
+    const interest = roundCurrency(balance * result.quarterlyInterestRate);
+    const principal = roundCurrency(result.quarterlyInstallment - interest);
+    balance = roundCurrency(Math.max(balance - principal, 0));
+
+    const quarterNumber = moratoriumQuarters + i;
+    const startMonth = (quarterNumber - 1) * 3 + 1;
+    const endMonth = quarterNumber * 3;
+
+    installments.push({
+      installmentNumber: i,
+      duePeriod: `Q${quarterNumber} (Months ${startMonth}-${endMonth})`,
+      principal,
+      interest,
+      totalInstallment: result.quarterlyInstallment,
+      outstandingBalance: balance,
+    });
+  }
+
+  return installments;
+}
