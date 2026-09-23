@@ -11,6 +11,7 @@ import { CompetitorMappingSection } from "@/components/report/competitor-mapping
 import { PricingRecommendationSection } from "@/components/report/pricing-recommendation-section";
 import { FinancialStructuringSection } from "@/components/report/financial-structuring-section";
 import { SchemeMatchSection } from "@/components/report/scheme-match-section";
+import { NsfdcScaFinancingSection } from "@/components/report/nsfdc-sca-financing-section";
 import { RepaymentScheduleSection } from "@/components/report/repayment-schedule-section";
 import { SourcesSection } from "@/components/report/sources-section";
 import { ActionPlanSection } from "@/components/report/action-plan-section";
@@ -187,6 +188,7 @@ export default function ReportPage() {
         6. Suggested Pricing
         7. Financial Structuring
         8. Scheme Match
+        8A. NSFDC / SCA Financing Structure
         9. Repayment Schedule
         10. Sources
         11. Action Plan
@@ -219,6 +221,9 @@ export default function ReportPage() {
 
       {/* 8. Scheme Match */}
       <SchemeMatchSection schemeMatch={data.schemeMatch} />
+
+      {/* 8A. NSFDC / SCA Financing Structure */}
+      <NsfdcScaFinancingSection financial={data.financials} />
 
       {/* 9. Repayment Schedule */}
       <RepaymentScheduleSection schedule={data.repaymentSchedule} />
